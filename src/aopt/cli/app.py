@@ -384,6 +384,180 @@ def cache(
         console.print("Available actions: stats, clear")
 
 
+@app.command()
+def remove_bg(
+    path: Path = typer.Argument(..., help="Image file path"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output path (PNG)"),
+    model: str = typer.Option("rmbg-1.4", "--model", "-m", help="Model: rmbg-1.4 or u2net"),
+    threshold: float = typer.Option(0.5, "--threshold", "-t", help="Alpha threshold (0-1)"),
+) -> None:
+    """Remove background from images using AI.
+    
+    Uses RMBG-1.4 or U2Net models for high-quality background removal.
+    Models are downloaded automatically on first use (~176MB for RMBG-1.4).
+    
+    Examples:
+        aopt remove-bg photo.jpg
+        aopt remove-bg portrait.png -o portrait_nobg.png
+        aopt remove-bg product.jpg --model u2net
+    """
+    try:
+        from aopt.ai.rembg import BackgroundRemover
+        from aopt.cli.dashboard import Dashboard
+        
+        remover = BackgroundRemover(model_name=model, console=console)
+        dashboard = Dashboard(console)
+        
+        with dashboard.progress_context("Removing background") as progress:
+            task = progress.add_task(f"[cyan]{path.name}", total=100)
+            result = remover.remove_background(path, output, threshold=threshold)
+            progress.update(task, completed=100)
+        
+        if result.success:
+            console.print(f"\n[bold green]✅ Background removed![/]")
+            console.print(f"   [dim]Input:[/]  {result.input_path}")
+            console.print(f"   [dim]Output:[/] {result.output_path}")
+            console.print(f"   [dim]Size:[/]   {result.original_size[0]}x{result.original_size[1]}")
+        else:
+            console.print(f"[red]Error:[/] {result.message}")
+            raise typer.Exit(1)
+            
+    except ImportError as e:
+        console.print(
+            "[red]Error:[/] Background removal requires AI dependencies. "
+            "Install with: [cyan]poetry install --with ai[/]"
+        )
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/] {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def upscale(
+    path: Path = typer.Argument(..., help="Image file path"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output path"),
+    scale: int = typer.Option(4, "--scale", "-s", help="Scale factor (currently only 4x)"),
+) -> None:
+    """AI-powered image upscaling using Real-ESRGAN.
+    
+    Upscales images by 4x using Real-ESRGAN neural network.
+    Large images are automatically processed in tiles to prevent memory issues.
+    Model is downloaded automatically on first use (~64MB).
+    
+    Examples:
+        aopt upscale small.jpg
+        aopt upscale icon.png -o icon_4x.png
+        aopt upscale thumbnail.jpg --scale 4
+    """
+    try:
+        from aopt.ai.upscale import AIUpscaler
+        from aopt.cli.dashboard import Dashboard
+        
+        upscaler = AIUpscaler(console=console)
+        dashboard = Dashboard(console)
+        
+        with dashboard.progress_context(f"Upscaling {scale}x") as progress:
+            task = progress.add_task(f"[cyan]{path.name}", total=100)
+            result = upscaler.upscale(path, output, scale=scale)
+            progress.update(task, completed=100)
+        
+        if result.success:
+            console.print(f"\n[bold green]✅ Image upscaled {scale}x![/]")
+            console.print(f"   [dim]Input:[/]  {result.input_path}")
+            console.print(f"   [dim]Output:[/] {result.output_path}")
+            console.print(
+                f"   [dim]Size:[/]   {result.original_size[0]}x{result.original_size[1]} → "
+                f"{result.upscaled_size[0]}x{result.upscaled_size[1]}"
+            )
+        else:
+            console.print(f"[red]Error:[/] {result.message}")
+            raise typer.Exit(1)
+            
+    except ImportError as e:
+        console.print(
+            "[red]Error:[/] AI upscaling requires AI dependencies. "
+            "Install with: [cyan]poetry install --with ai[/]"
+        )
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/] {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def models(
+    action: str = typer.Argument("list", help="Action: list, download, info, delete"),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Model name"),
+) -> None:
+    """Manage AI models.
+    
+    List, download, or delete ONNX models used by AI features.
+    
+    Examples:
+        aopt models list
+        aopt models download -n rmbg-1.4
+        aopt models info -n realesrgan-x4
+        aopt models delete -n u2net
+    """
+    try:
+        from aopt.ai.models import ModelManager, MODEL_REGISTRY
+        
+        manager = ModelManager(console=console)
+        
+        if action == "list":
+            console.print("\n[bold cyan]📦 AI Models[/]\n")
+            
+            # Show registry models
+            for model_name, info in MODEL_REGISTRY.items():
+                available = manager.is_model_available(model_name)
+                status = "[green]●[/] Downloaded" if available else "[dim]○[/] Not downloaded"
+                console.print(f"  [bold]{model_name}[/]")
+                console.print(f"    {status}")
+                console.print(f"    [dim]{info.get('description', '')}[/]")
+        
+        elif action == "download":
+            if not name:
+                console.print("[red]Error:[/] Specify model with --name")
+                raise typer.Exit(1)
+            manager.ensure_model(name)
+        
+        elif action == "info":
+            if not name:
+                console.print("[red]Error:[/] Specify model with --name")
+                raise typer.Exit(1)
+            info = manager.get_model_info(name)
+            console.print(f"\n[bold cyan]Model: {name}[/]")
+            console.print(f"  [dim]Path:[/] {info['path']}")
+            console.print(f"  [dim]Providers:[/] {', '.join(info['providers'])}")
+            console.print(f"  [dim]Inputs:[/]")
+            for inp in info['inputs']:
+                console.print(f"    - {inp['name']}: {inp['shape']} ({inp['type']})")
+            console.print(f"  [dim]Outputs:[/]")
+            for out in info['outputs']:
+                console.print(f"    - {out['name']}: {out['shape']} ({out['type']})")
+        
+        elif action == "delete":
+            if not name:
+                console.print("[red]Error:[/] Specify model with --name")
+                raise typer.Exit(1)
+            if manager.delete_model(name):
+                console.print(f"[green]✓ Model '{name}' deleted[/]")
+            else:
+                console.print(f"[yellow]Model '{name}' not found[/]")
+        
+        else:
+            console.print(f"[red]Unknown action:[/] {action}")
+            console.print("Available: list, download, info, delete")
+            
+    except ImportError:
+        console.print(
+            "[red]Error:[/] Model management requires AI dependencies. "
+            "Install with: [cyan]poetry install --with ai[/]"
+        )
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()
 

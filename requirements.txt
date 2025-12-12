@@ -1,0 +1,41 @@
+# Asset Optimizer - Requirements
+# Core dependencies for the aopt CLI tool
+
+# ============================================================================
+# CORE DEPENDENCIES
+# ============================================================================
+
+# CLI Framework
+typer>=0.12.0,<0.13.0
+rich>=13.7.0,<14.0.0
+
+# Image Processing
+pillow>=10.1.0,<11.0.0
+opencv-python-headless>=4.8.0,<5.0.0
+numpy>=1.26.0,<2.0.0
+
+# Configuration & Validation
+pydantic>=2.5.0,<3.0.0
+pydantic-settings>=2.1.0,<3.0.0
+pyyaml>=6.0,<7.0
+
+# ============================================================================
+# AI DEPENDENCIES (Optional - for advanced features)
+# ============================================================================
+# Uncomment the following lines to enable AI features:
+# - Background removal (rembg)
+# - AI upscaling
+# - OCR-based PII detection
+
+# easyocr>=1.7.0,<2.0.0
+# onnxruntime>=1.16.0,<2.0.0
+
+# ============================================================================
+# DEVELOPMENT DEPENDENCIES (Optional - for testing & linting)
+# ============================================================================
+# Uncomment for development work:
+
+# pytest>=7.4.0,<8.0.0
+# pytest-cov>=4.1.0,<5.0.0
+# ruff>=0.1.0,<1.0.0
+# mypy>=1.7.0,<2.0.0
