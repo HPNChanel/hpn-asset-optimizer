@@ -1,0 +1,8 @@
+# Thumbnail preset
+name: thumbnail
+description: "Small thumbnails for galleries"
+format: jpeg
+quality: 70
+max_width: 300
+max_height: 300
+strip_metadata: true

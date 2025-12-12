@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "asset-optimizer"
+version = "0.1.0"
+description = "Ultra-high-performance CLI for image optimization - Speed, Privacy, Beautiful DX"
+authors = ["HPN Corporation"]
+readme = "README.md"
+license = "MIT"
+packages = [{include = "aopt", from = "src"}]
+keywords = ["image", "optimization", "cli", "compression", "webp", "avif"]
+
+[tool.poetry.scripts]
+aopt = "aopt.cli.app:app"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+typer = "^0.12.0"
+rich = "^13.7.0"
+pillow = "^10.1.0"
+opencv-python-headless = "^4.8.0"
+numpy = "^1.26.0"
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+pyyaml = "^6.0"
+
+[tool.poetry.group.ai.dependencies]
+easyocr = "^1.7.0"
+onnxruntime = "^1.16.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+ruff = "^0.1.0"
+mypy = "^1.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

@@ -1,0 +1,7 @@
+# Print quality preset
+name: print
+description: "High quality for printing - lossless PNG"
+format: png
+quality: 100
+strip_metadata: false
+lossless: true
